@@ -260,14 +260,17 @@ class PersonalAIRequest(BaseModel):
     user_id: int
     prompt: str 
     clear_history: bool = False 
-    model_type: str = "gpt5_nano" # <--- Меняем дефолт на GPT-5 Nano
+    model_type: str = "gpt4o_mini" # По умолчанию быстрый и дешевый
+    attachments: Optional[List[str]] = [] # URL картинок для анализа
 
 @app.post("/api/my_personal_ai")
 async def handle_personal_ai(request: PersonalAIRequest):
     MY_SECRET_VK_ID = 233876992  
     
+    # Исправление для мобильных: логгируем, если ID не совпал
     if request.user_id != MY_SECRET_VK_ID:
-        return {"success": False, "error": "Доступ запрещен."}
+        logging.warning(f"Попытка доступа: {request.user_id}")
+        return {"success": False, "error": "Доступ разрешен только админу."}
 
     if request.clear_history:
         db.clear_chat_history(request.user_id)
@@ -275,92 +278,54 @@ async def handle_personal_ai(request: PersonalAIRequest):
         
     try:
         db.save_chat_message(request.user_id, "user", request.prompt)
-        history_from_db = db.get_chat_history(request.user_id, limit=30)
+        # Берем последние 20 сообщений для контекста
+        history_from_db = db.get_chat_history(request.user_id, limit=20)
         
-        # --- ЛОГИКА ВЫБОРА МОДЕЛИ ---
+        # --- УМНАЯ ЛОГИКА ВЫБОРА МОДЕЛИ ---
+        chosen_model = request.model_type
+        
+        # Авто-определение кодинга (если есть ключевые слова)
+        code_keywords = ["код", "rust", "python", "скрипт", "ошибка", "напиши функцию", "sql", "css"]
+        if any(word in request.prompt.lower() for word in code_keywords):
+            chosen_model = "gemini_31_pro"
+
         model_id = ""
-        model_input_params: Dict[str, Any] = {
-            "max_output_tokens": 3000, # Общий лимит, если модель поддерживает
-            "temperature": 0.7
-        }
-        
-        # Переводим историю из нашей базы в формат, понятный нейросетям (role/content)
-        # Исключаем системный промпт из history, чтобы управлять им отдельно
-        messages_for_llm = []
-        for msg in history_from_db:
-            messages_for_llm.append({"role": msg["role"], "content": msg["content"]})
+        model_params = {"temperature": 0.7}
 
-        # --- СИСТЕМНЫЕ ПРОМПТЫ ---
-        # Выбираем системный промпт в зависимости от модели
-        # GPT-like модели предпочитают "system" role, Llama - часть "prompt"
-        
-        system_for_llama = "Ты — продвинутый AI-помощник, эксперт по программированию на Python, JavaScript и HTML. Отвечай на русском языке. Код всегда оборачивай в блоки Markdown (```python, ```javascript и т.д.). Учитывай контекст разговора."
-        system_for_gpt_gemini = "Ты — продвинутый AI-помощник, эксперт по программированию на Python, JavaScript и HTML. Отвечай на русском языке. Код всегда оборачивай в блоки Markdown (```python, ```javascript и т.д.)."
-        
-        # --- НАСТРОЙКИ МОДЕЛЕЙ ---
-        if request.model_type == "gpt5_nano":
-            model_id = "openai/gpt-5-nano"
-            model_input_params["prompt"] = messages_for_llm[-1]["content"] # GPT-Nano использует prompt для последнего
-            model_input_params["messages"] = messages_for_llm[:-1] # Остальное в messages
-            model_input_params["system_prompt"] = system_for_gpt_gemini
-            model_input_params["max_completion_tokens"] = 3000
+        # Настраиваем параметры под выбранную модель из твоего списка
+        if chosen_model == "gemini_31_pro":
+            model_id = "google/gemini-3.1-pro" # [cite: 1]
+            model_params.update({
+                "prompt": request.prompt,
+                "thinking_level": "high", # Включаем глубокое мышление для кода [cite: 4]
+                "max_output_tokens": 65535
+            })
+        elif chosen_model == "gemini_flash":
+            model_id = "google/gemini-3-flash" # [cite: 58]
+            model_params.update({
+                "prompt": request.prompt,
+                "max_output_tokens": 65535
+            })
+            # Если прислали фото — добавляем в Gemini 
+            if request.attachments:
+                model_params["images"] = [{"value": url} for url in request.attachments]
+        else:
+            model_id = "openai/gpt-4o-mini" # [cite: 151]
+            model_params.update({
+                "prompt": request.prompt,
+                "max_completion_tokens": 4096
+            })
 
-        elif request.model_type == "gemini_flash": # Ваш "умный"
-            model_id = "google/gemini-2.5-flash"
-            # Gemini 2.5 Flash хорошо работает с prompt, но можно и messages
-            model_input_params["prompt"] = "" # Основной промпт будет ниже
-            model_input_params["messages"] = [{"role": "user", "content": system_for_gpt_gemini}] # Системный промпт
-            for msg in messages_for_llm:
-                 model_input_params["messages"].append(msg)
-            model_input_params["max_output_tokens"] = 65535 # Максимум для Flash
-            
-        elif request.model_type == "gpt4o_mini": # Ваша "классика"
-            model_id = "openai/gpt-4o-mini"
-            model_input_params["prompt"] = messages_for_llm[-1]["content"] # GPT-Nano использует prompt для последнего
-            model_input_params["messages"] = messages_for_llm[:-1] # Остальное в messages
-            model_input_params["system_prompt"] = system_for_gpt_gemini
-            model_input_params["max_completion_tokens"] = 4096
-
-        elif request.model_type == "llama3_1": # Ваша Llama 3.1 (если все же захотите)
-            model_id = "meta/meta-llama-3.1-70b-instruct"
-            # Для Llama просто склеиваем в один промпт
-            full_prompt = f"{system_for_llama}\n\nИстория диалога:\n"
-            for msg in messages_for_llm:
-                role_name = "User" if msg["role"] == "user" else "Assistant"
-                full_prompt += f"{role_name}: {msg['content']}\n"
-            full_prompt += "Assistant:" 
-            model_input_params["prompt"] = full_prompt
-            model_input_params["max_tokens"] = 3000
-
-        else: # Llama 3 (Llama 3 8B) - как дефолт, если что-то пойдет не так
-            model_id = "meta/meta-llama-3-8b-instruct"
-            full_prompt = f"{system_for_llama}\n\nИстория диалога:\n"
-            for msg in messages_for_llm:
-                role_name = "User" if msg["role"] == "user" else "Assistant"
-                full_prompt += f"{role_name}: {msg['content']}\n"
-            full_prompt += "Assistant:" 
-            model_input_params["prompt"] = full_prompt
-            model_input_params["max_tokens"] = 3000
-
-
-        logging.info(f"Запрос к личному ИИ. Модель: {model_id}. История: {len(history_from_db)} сообщений.")
+        # Запуск нейросети через Replicate [cite: 4, 115]
+        output = client.run(model_id, input=model_params)
+        full_response = "".join(output)
         
-        output_iterator = client.run(
-            model_id,
-            input=model_input_params # <--- Передаем динамические параметры!
-        )
-        
-        full_response = "".join(output_iterator)
-        
-        if not full_response:
-             return {"success": False, "error": "Нейросеть промолчала."}
-             
         db.save_chat_message(request.user_id, "assistant", full_response)
         return {"success": True, "response": full_response}
         
     except Exception as e:
-        logging.error(f"Ошибка личного ИИ: {e}", exc_info=True) # Добавил exc_info=True для полных трейсбэков
-        return {"success": False, "error": f"Внутренняя ошибка сервера: {str(e)}"}
+        logging.error(f"Ошибка ИИ: {e}")
+        return {"success": False, "error": f"Ошибка: {str(e)}"}
         
 # --- ИНТЕГРАЦИЯ ЮKASSA ДЛЯ ВК ---
 @app.post("/api/yookassa/create-payment")
