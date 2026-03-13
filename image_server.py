@@ -265,11 +265,11 @@ class PersonalAIRequest(BaseModel):
 
 @app.post("/api/my_personal_ai")
 async def handle_personal_ai(request: PersonalAIRequest):
-    MY_SECRET_VK_ID = 233876992  
+    MY_SECRET_VK_ID = int(os.getenv("MY_VK_ID", 0))  
     
     # Исправление для мобильных: логгируем, если ID не совпал
     if request.user_id != MY_SECRET_VK_ID:
-        logging.warning(f"Попытка доступа: {request.user_id}")
+        logging.warning(f"Доступ запрещен для: {request.user_id}")
         return {"success": False, "error": "Доступ разрешен только админу."}
 
     if request.clear_history:
