@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <!-- ... (оставьте как было: meta, title, ссылки на стили и highlight.js) ... -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Мой Помощник</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Шапка с селектором и кнопкой очистки -->
+        <header class="app-header" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px;">
+            <h1 style="margin: 0; font-size: 18px; display: flex; align-items: center; gap: 10px;">
+                🧠 Мой ИИ
+                <!-- НОВЫЙ ВЫПАДАЮЩИЙ СПИСОК МОДЕЛЕЙ -->
+                <select id="modelSelector" style="background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 5px; padding: 5px; font-size: 14px; outline: none; cursor: pointer;">
+                    <option value="gpt5_nano" style="color: black;">⚡ GPT-5 Nano (Супер-дешево)</option>
+                    <option value="gemini_flash" style="color: black;">🧠 Gemini 2.5 Flash (Логика)</option>
+                    <option value="gpt4o_mini" style="color: black;">🤖 GPT-4o Mini (Классика)</option>
+                    <option value="llama3_1" style="color: black;">✨ Llama 3.1 70B (Мощная)</option>
+                    <!-- Можно добавить и Llama 3 8B, если захотите, как резерв -->
+                </select>
+            </h1>
+            <button id="clearChatBtn" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 14px;">🧹 Очистить</button>
+        </header>
+
+        <!-- Окно чата -->
+        <div id="chat-box">
+            <div class="message ai-message">
+                Привет! Я твой личный ассистент с памятью. Пиши код, задавай вопросы. <br><br><i>Нажми на метёлку сверху, когда захочешь начать новую тему!</i>
+            </div>
+        </div>
+
+        <!-- Поле ввода -->
+        <div class="input-area">
+            <textarea id="userInput" placeholder="Спроси меня о чем угодно..."></textarea>
+            <button id="sendBtn">➤</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
