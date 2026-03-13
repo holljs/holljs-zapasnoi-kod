@@ -18,11 +18,9 @@
                 🧠 Мой ИИ
                 <!-- НОВЫЙ ВЫПАДАЮЩИЙ СПИСОК МОДЕЛЕЙ -->
                 <select id="modelSelector" style="background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 5px; padding: 5px; font-size: 14px; outline: none; cursor: pointer;">
-                    <option value="gpt5_nano" style="color: black;">⚡ GPT-5 Nano (Супер-дешево)</option>
-                    <option value="gemini_flash" style="color: black;">🧠 Gemini 2.5 Flash (Логика)</option>
-                    <option value="gpt4o_mini" style="color: black;">🤖 GPT-4o Mini (Классика)</option>
-                    <option value="llama3_1" style="color: black;">✨ Llama 3.1 70B (Мощная)</option>
-                    <!-- Можно добавить и Llama 3 8B, если захотите, как резерв -->
+                    <option value="gpt4o_mini" style="color: black;">🤖 GPT-4o Mini (Тексты)</option>
+                    <option value="gemini_31_pro" style="color: black;">💻 Gemini 3.1 Pro (Кодинг)</option>
+                    <option value="gemini_flash" style="color: black;">🖼️ Gemini Flash (Фото)</option>
                 </select>
             </h1>
             <button id="clearChatBtn" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 14px;">🧹 Очистить</button>
@@ -37,12 +35,14 @@
 
         <!-- Поле ввода -->
         <div class="input-area">
-            <textarea id="userInput" placeholder="Спроси меня о чем угодно..."></textarea>
+            <input type="file" id="fileInput" style="display: none;" accept="image/*">
+            
+            <button id="attachBtn" style="background: none; border: none; font-size: 22px; cursor: pointer; padding: 0 5px;">📎</button>
+            
+            <textarea id="userInput" placeholder="Спроси меня или прикрепи фото..."></textarea>
             <button id="sendBtn">➤</button>
         </div>
-    </div>
-
-    <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+    </div> <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
