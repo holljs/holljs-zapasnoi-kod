@@ -15,12 +15,72 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .user-message { background: #e1f0ff; color: #1c5299; align-self: flex-end; border-bottom-right-radius: 2px; }
 
 /* Ввод */
-.input-area { display: flex; padding: 15px; background: white; border-top: 1px solid #e1e4e8; gap: 10px; align-items: flex-end; }
-#userInput { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 8px; resize: none; font-family: inherit; font-size: 15px; min-height: 50px; max-height: 150px; outline: none; }
-#userInput:focus { border-color: #2787F5; }
-#sendBtn { background: #2787F5; color: white; border: none; border-radius: 8px; width: 50px; height: 50px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
-#sendBtn:hover { background: #1c6ad1; }
-#sendBtn:disabled { background: #ccc; cursor: not-allowed; }
+.input-area { 
+    display: flex; 
+    padding: 15px; 
+    background: white; 
+    border-top: 1px solid #e1e4e8; 
+    gap: 10px; 
+    align-items: center; /* Выравниваем скрепку и кнопку по центру относительно поля */
+}
+
+#attachBtn { 
+    background: none; 
+    border: none; 
+    font-size: 24px; 
+    cursor: pointer; 
+    color: #65676b; /* Серый цвет для скрепки */
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px;
+}
+
+#attachBtn:hover { 
+    color: #2787F5; /* Синий при наведении */
+}
+
+#userInput { 
+    flex-grow: 1; 
+    padding: 12px; 
+    border: 1px solid #ccc; 
+    border-radius: 8px; 
+    resize: none; 
+    font-family: inherit; 
+    font-size: 15px; 
+    min-height: 44px; /* Фиксированная высота для аккуратности */
+    max-height: 150px; 
+    outline: none; 
+}
+
+#userInput:focus { 
+    border-color: #2787F5; 
+}
+
+#sendBtn { 
+    background: #2787F5; 
+    color: white; 
+    border: none; 
+    border-radius: 8px; 
+    min-width: 44px; 
+    height: 44px; 
+    font-size: 20px; 
+    cursor: pointer; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    transition: 0.2s; 
+}
+
+#sendBtn:hover { 
+    background: #1c6ad1; 
+}
+
+#sendBtn:disabled { 
+    background: #ccc; 
+    cursor: not-allowed; 
+}
 
 /* Красивый код (Markdown) */
 .ai-message pre { background: #0d1117; color: #c9d1d9; padding: 12px; border-radius: 8px; overflow-x: auto; margin: 10px 0; font-family: "Courier New", Courier, monospace; font-size: 13px; }
