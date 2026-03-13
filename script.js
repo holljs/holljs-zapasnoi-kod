@@ -1,7 +1,8 @@
 vkBridge.send('VKWebAppInit');
 
 let USER_ID = null;
-const API_URL = 'https://neuro-master.online/api/my_personal_ai'; 
+let currentFileUrl = null; // Добавили переменную для хранения ссылки на фото
+const API_URL = 'https://neuro-master.online/api/my_personal_ai';
 
 marked.setOptions({
     highlight: function(code, lang) {
@@ -48,12 +49,18 @@ async function loadHistory() {
 }
 
 // Инициализация
-vkBridge.send('VKWebAppGetUserInfo')
-    .then(data => { 
-        USER_ID = data.id; 
-        loadHistory(); // Как только узнали ID, грузим старые переписки!
-    })
-    .catch(console.error);
+async function initApp() {
+    try {
+        const data = await vkBridge.send('VKWebAppGetUserInfo');
+        USER_ID = data.id;
+        console.log("ID загружен:", USER_ID);
+        loadHistory();
+    } catch (e) {
+        console.error("Ошибка VK Bridge:", e);
+        setTimeout(initApp, 1000); // Пробуем еще раз через секунду
+    }
+}
+initApp();
 
 // Очистка базы данных (метелочка)
 clearChatBtn.addEventListener('click', async () => {
@@ -72,13 +79,44 @@ clearChatBtn.addEventListener('click', async () => {
     }
 });
 
-// Отправка сообщения
+const fileInput = document.getElementById('fileInput');
+const attachBtn = document.getElementById('attachBtn');
+
+attachBtn.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    appendMessage('ai', `⏳ Загружаю фото...`);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch('https://neuro-master.online/api/upload', {
+            method: 'POST',
+            body: formData
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+            currentFileUrl = result.url;
+            appendMessage('ai', `✅ Фото прикреплено. Теперь напиши, что с ним сделать!`);
+        } else {
+            appendMessage('ai', `❌ Ошибка загрузки файла.`);
+        }
+    } catch (e) {
+        appendMessage('ai', `🌐 Ошибка сети при отправке файла.`);
+    }
+});
+
 async function sendMessage() {
     const text = userInput.value.trim();
-    if (!text) return;
+    if (!text && !currentFileUrl) return; 
     if (!USER_ID) { alert("Подождите, ваш VK ID еще не загрузился."); return; }
 
-    appendMessage('user', text);
+    appendMessage('user', text || "Разбери это изображение");
     userInput.value = '';
     sendBtn.disabled = true;
 
@@ -94,11 +132,17 @@ async function sendMessage() {
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: USER_ID, prompt: text, model_type: modelSelector.value }) 
+            body: JSON.stringify({ 
+                user_id: USER_ID, 
+                prompt: text || "Опиши фото", 
+                model_type: modelSelector.value,
+                attachments: currentFileUrl ? [currentFileUrl] : [] // ПЕРЕДАЕМ ФОТО СЮДА
+            }) 
         });
         const result = await response.json();
         
-        chatBox.removeChild(document.getElementById(loadingId));
+        document.getElementById(loadingId).remove();
+        currentFileUrl = null; // Сбрасываем фото после отправки
 
         if (result.success) {
             appendMessage('ai', result.response, true);
@@ -106,7 +150,7 @@ async function sendMessage() {
             appendMessage('ai', '❌ Ошибка: ' + (result.error || 'Неизвестная ошибка'));
         }
     } catch (e) {
-        chatBox.removeChild(document.getElementById(loadingId));
+        if(document.getElementById(loadingId)) document.getElementById(loadingId).remove();
         appendMessage('ai', '🌐 Ошибка сети.');
     } finally {
         sendBtn.disabled = false;
