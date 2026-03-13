@@ -1,5 +1,3 @@
-image_server.py
-
 # image_server.py (ПОЛНАЯ И ФИНАЛЬНАЯ ВЕРСИЯ)
 from fastapi import FastAPI, HTTPException, Request, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
